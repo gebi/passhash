@@ -81,9 +81,18 @@ func main() {
             panic(err)
         }
     case "bcrypt":
+        if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
+            panic("bcrypt: unsupported cost value")
+        }
         dk, err = bcrypt.GenerateFromPassword(pw, cost)
         if err != nil {
             panic(err)
+        }
+        // safeguard against bcrypt working with wrong cost value
+        if real_cost, err := bcrypt.Cost(dk); err != nil {
+            panic(err)
+        } else if cost != real_cost {
+            panic("bcrypt did not generate hash with user provided cost value")
         }
     }
 
