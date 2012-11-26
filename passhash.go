@@ -1,7 +1,7 @@
 package main
 
 import (
-    "flag"
+    flags "github.com/jessevdk/go-flags"
     "fmt"
     "hash"
     "crypto/rand"
@@ -36,25 +36,31 @@ var (
 
 
 func main() {
-    var err error
-    var rounds, cost int
-    var hashname, kdname string
-    flag.IntVar(&rounds, "rounds", 50000, "number of rounds")
-    flag.StringVar(&hashname, "hash", "sha256", "hash to use")
-    flag.StringVar(&kdname, "kd", "scrypt", "key derivation function")
-    flag.IntVar(&cost, "cost", 14, "1<<cost parameter to scrypt")
-    flag.Parse()
-
-    if kdname == "scrypt" {
-        hashname = "sha256"
+    var opts struct {
+        Rounds int `short:"r" long:"rounds" default:"50000" description:"Number of rounds"`
+        Hashname string `long:"hash" default:"sha256" description:"Hash to use"`
+        Kdname string `long:"kd" description:"Key derivation function"`
+        Cost int `short:"c" long:"cost" default:"14" description:"Cost parameter to key derivation functions"`
     }
-    args := flag.Args()
-    h := str2hash[hashname]
+    opts.Rounds = 50000
+    opts.Hashname = "sha256"
+    opts.Kdname = "scrypt"
+    opts.Cost = 14
+    args, err := flags.Parse(&opts)
+    if err != nil {
+        panic(err)
+    }
+
+    if opts.Kdname == "scrypt" {
+        opts.Hashname = "sha256"
+    }
+    //println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
+    h := str2hash[opts.Hashname]
     hashlength := h().Size()
     salt := make([]byte, hashlength)
     pw := []byte(args[0])
     if len(args) == 2 {
-        if kdname == "bcrypt" {
+        if opts.Kdname == "bcrypt" {
             panic("Salt not supported for bcrypt")
         }
         salt, err = base64.URLEncoding.DecodeString(args[1])
@@ -72,26 +78,26 @@ func main() {
     }
     var dk []byte
 
-    switch kdname {
+    switch opts.Kdname {
     case "pbkdf2":
-        dk = pbkdf2.Key(pw, salt, rounds, hashlength , h)
+        dk = pbkdf2.Key(pw, salt, opts.Rounds, hashlength , h)
     case "scrypt":
-        dk, err = scrypt.Key(pw, salt, 1<<uint(cost), 8, 1, 32)
+        dk, err = scrypt.Key(pw, salt, 1<<uint(opts.Cost), 8, 1, 32)
         if err != nil {
             panic(err)
         }
     case "bcrypt":
-        if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
+        if opts.Cost < bcrypt.MinCost || opts.Cost > bcrypt.MaxCost {
             panic("bcrypt: unsupported cost value")
         }
-        dk, err = bcrypt.GenerateFromPassword(pw, cost)
+        dk, err = bcrypt.GenerateFromPassword(pw, opts.Cost)
         if err != nil {
             panic(err)
         }
         // safeguard against bcrypt working with wrong cost value
         if real_cost, err := bcrypt.Cost(dk); err != nil {
             panic(err)
-        } else if cost != real_cost {
+        } else if opts.Cost != real_cost {
             panic("bcrypt did not generate hash with user provided cost value")
         }
     }
