@@ -2,6 +2,7 @@ package main
 
 import (
     flags "github.com/jessevdk/go-flags"
+    "os"
     "fmt"
     "hash"
     "crypto/rand"
@@ -48,7 +49,7 @@ func main() {
     opts.Cost = 14
     args, err := flags.Parse(&opts)
     if err != nil {
-        panic(err)
+        os.Exit(1)
     }
 
     if opts.Kdname == "scrypt" {
