@@ -3,6 +3,7 @@ package main
 import (
     flags "github.com/jessevdk/go-flags"
     "os"
+    "log"
     "fmt"
     "hash"
     "crypto/rand"
@@ -51,30 +52,36 @@ func main() {
     if err != nil {
         os.Exit(1)
     }
+    if len(args) == 0 {
+        log.Fatal("Error: ", "Parameter password missing")
+    }
 
     if opts.Kdname == "scrypt" {
         opts.Hashname = "sha256"
     }
     //println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
-    h := str2hash[opts.Hashname]
+    h, hash_available := str2hash[opts.Hashname]
+    if ! hash_available {
+        log.Fatal("Error: ", "Unknown hash given: ", opts.Hashname)
+    }
     hashlength := h().Size()
     salt := make([]byte, hashlength)
     pw := []byte(args[0])
     if len(args) == 2 {
         if opts.Kdname == "bcrypt" {
-            panic("Salt not supported for bcrypt")
+            log.Fatal("Error: ", "Salt not supported for bcrypt")
         }
         salt, err = base64.URLEncoding.DecodeString(args[1])
         if err != nil {
-            panic(err)
+            log.Fatal("Error: ", "Could not base64 decode salt: ", err)
         }
         if len(salt) != hashlength {
-            panic(fmt.Sprintf("salt not required size: %d needing %d bytes", len(salt), hashlength))
+            log.Fatalf("Error: Salt not required size: %d needing %d bytes", len(salt), hashlength)
         }
     } else {
         n, err := rand.Read(salt)
         if n != len(salt) || err != nil {
-            panic(err)
+            log.Fatal("Error: ", "Could not generate salt: ", err)
         }
     }
     var dk []byte
@@ -85,21 +92,21 @@ func main() {
     case "scrypt":
         dk, err = scrypt.Key(pw, salt, 1<<uint(opts.Cost), 8, 1, 32)
         if err != nil {
-            panic(err)
+            log.Fatal("Error: ", "in scrypt: ", err)
         }
     case "bcrypt":
         if opts.Cost < bcrypt.MinCost || opts.Cost > bcrypt.MaxCost {
-            panic("bcrypt: unsupported cost value")
+            log.Fatal("Error: ", "bcrypt: unsupported cost value")
         }
         dk, err = bcrypt.GenerateFromPassword(pw, opts.Cost)
         if err != nil {
-            panic(err)
+            log.Fatal("Error: ", "in bcrypt: ", err)
         }
         // safeguard against bcrypt working with wrong cost value
         if real_cost, err := bcrypt.Cost(dk); err != nil {
             panic(err)
         } else if opts.Cost != real_cost {
-            panic("bcrypt did not generate hash with user provided cost value")
+            log.Fatal("Error: ", "bcrypt did not generate hash with user provided cost value")
         }
     }
 
