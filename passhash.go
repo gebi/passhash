@@ -1,12 +1,12 @@
 package main
 
 import (
-    flags "github.com/jessevdk/go-flags"
-    "os"
-    "log"
-    "fmt"
-    "hash"
     "crypto/rand"
+    "fmt"
+    flags "github.com/jessevdk/go-flags"
+    "hash"
+    "log"
+    "os"
 
     // hash
     "code.google.com/p/go.crypto/md4"
@@ -16,8 +16,8 @@ import (
     "crypto/sha512"
 
     // key derivation function
-    "code.google.com/p/go.crypto/pbkdf2"
     "code.google.com/p/go.crypto/bcrypt"
+    "code.google.com/p/go.crypto/pbkdf2"
     "code.google.com/p/go.crypto/scrypt"
 
     // output encoding
@@ -25,10 +25,10 @@ import (
 )
 
 var (
-    str2hash = map[string] (func() hash.Hash) {
-        "md4": md4.New,
-        "md5": md5.New,
-        "sha1": sha1.New,
+    str2hash = map[string](func() hash.Hash){
+        "md4":    md4.New,
+        "md5":    md5.New,
+        "sha1":   sha1.New,
         "sha224": sha256.New224,
         "sha256": sha256.New,
         "sha384": sha512.New384,
@@ -36,13 +36,12 @@ var (
     }
 )
 
-
 func main() {
     var opts struct {
-        Rounds int `short:"r" long:"rounds" default:"50000" description:"Number of rounds"`
+        Rounds   int    `short:"r" long:"rounds" default:"50000" description:"Number of rounds"`
         Hashname string `long:"hash" default:"sha256" description:"Hash to use"`
-        Kdname string `long:"kd" description:"Key derivation function"`
-        Cost int `short:"c" long:"cost" default:"14" description:"Cost parameter to key derivation functions"`
+        Kdname   string `long:"kd" description:"Key derivation function"`
+        Cost     int    `short:"c" long:"cost" default:"14" description:"Cost parameter to key derivation functions"`
     }
     opts.Rounds = 50000
     opts.Hashname = "sha256"
@@ -61,7 +60,7 @@ func main() {
     }
     //println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
     h, hash_available := str2hash[opts.Hashname]
-    if ! hash_available {
+    if !hash_available {
         log.Fatal("Error: ", "Unknown hash given: ", opts.Hashname)
     }
     hashlength := h().Size()
@@ -88,7 +87,7 @@ func main() {
 
     switch opts.Kdname {
     case "pbkdf2":
-        dk = pbkdf2.Key(pw, salt, opts.Rounds, hashlength , h)
+        dk = pbkdf2.Key(pw, salt, opts.Rounds, hashlength, h)
     case "scrypt":
         dk, err = scrypt.Key(pw, salt, 1<<uint(opts.Cost), 8, 1, 32)
         if err != nil {
