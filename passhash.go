@@ -47,7 +47,9 @@ func main() {
     opts.Hashname = "sha256"
     opts.Kdname = "scrypt"
     opts.Cost = 14
-    args, err := flags.Parse(&opts)
+    parser := flags.NewParser(&opts, flags.Default)
+    parser.Usage = "[OPTIONS] <password> [salt]"
+    args, err := parser.Parse()
     if err != nil {
         os.Exit(1)
     }
