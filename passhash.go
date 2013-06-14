@@ -1,3 +1,21 @@
+/* passhash is a command line utility to generate secure password hashes with scrypt bcrypt pbkdf2 md5 sha1 sha256 sha512
+
+I/O format is base64 conforming to RFC 4648 (also known as url safe base64 encoding).
+If no salt is provided a cryptographically strong pseudo-random generator is used to generate
+the salt through crypto/rand.Read (which uses either /dev/urandom on Unix like systems or
+CryptGenRandom API on Windows).
+
+Supported Key Derivation Functions with Default Parameters:
+
+    *scrypt* default (CPU/memory cost parameter 1<<14))
+    bcrypt           (cost value = 14)
+    pbkdf2           (sha256 with 50000 rounds)
+
+Supported Algorithms (pbkdf2):
+
+    sha1, sha256, sha224, sha384, sha512
+    md4, md5
+*/
 package main
 
 import (
