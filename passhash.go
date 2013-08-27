@@ -127,6 +127,8 @@ func main() {
         } else if opts.Cost != real_cost {
             log.Fatal("Error: ", "bcrypt did not generate hash with user provided cost value")
         }
+	default:
+		log.Fatal("Error: unknown key derivation")
     }
 
     salt_b64 := base64.URLEncoding.EncodeToString(salt)
