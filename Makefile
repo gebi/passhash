@@ -17,4 +17,4 @@ strip: passhash
 	strip --strip-all passhash
 
 clean:
-	rm -f passhash passhash_arm7 passhash_arm5 passhash_32.exe passhash_64.exe
+	rm -f passhash passhash_arm7 passhash_arm6 passhash_arm5 passhash_32.exe passhash_64.exe
