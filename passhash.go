@@ -28,6 +28,7 @@ import (
 
 	// hash
 	"code.google.com/p/go.crypto/md4"
+	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -60,7 +61,7 @@ func main() {
 		Hashname string `long:"hash" default:"sha256" description:"Hash to use"`
 		Kdname   string `long:"kd" description:"Key derivation function"`
 		Cost     int    `short:"c" long:"cost" default:"14" description:"Cost parameter to key derivation functions"`
-		Hmacenc  string `long:"hmacenc" default:"" description:"Password for final hmac encryption step"`
+		Hmacenc  string `long:"hmacenc" default:"" description:"Base64 encoded password for final hmac encryption step"`
 	}
 	opts.Rounds = 50000
 	opts.Hashname = "sha256"
@@ -78,8 +79,18 @@ func main() {
 		log.Fatal("Error: ", "Parameter password missing")
 	}
 
+	if opts.Kdname == "bcrypt" && opts.Hmacenc != "" {
+		log.Fatal("Error: bcrypt hash output can not be encrypted")
+	}
 	if opts.Kdname == "scrypt" {
 		opts.Hashname = "sha256"
+	}
+	var hmacenc_bin []byte
+	if opts.Hmacenc != "" {
+		hmacenc_bin, err = base64.URLEncoding.DecodeString(opts.Hmacenc)
+		if err != nil {
+			log.Fatal("Unable to decode hmac encryption password: ", err)
+		}
 	}
 	//println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
 	h, hash_available := str2hash[opts.Hashname]
@@ -132,6 +143,14 @@ func main() {
 		}
 	default:
 		log.Fatal("Error: unknown key derivation")
+	}
+
+	if opts.Hmacenc != "" {
+		hmac_enc := hmac.New(h, hmacenc_bin)
+		if _, err = hmac_enc.Write(dk); err != nil {
+			log.Fatal("Error: error encrypting hash with hmac: ", err)
+		}
+		dk = hmac_enc.Sum(nil)
 	}
 
 	salt_b64 := base64.URLEncoding.EncodeToString(salt)
