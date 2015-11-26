@@ -27,17 +27,17 @@ import (
 	"os"
 
 	// hash
-	"code.google.com/p/go.crypto/md4"
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"golang.org/x/crypto/md4"
 
 	// key derivation function
-	"code.google.com/p/go.crypto/bcrypt"
-	"code.google.com/p/go.crypto/pbkdf2"
-	"code.google.com/p/go.crypto/scrypt"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 
 	// output encoding
 	"encoding/base64"
