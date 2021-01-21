@@ -1,4 +1,4 @@
-/* passhash is a command line utility to generate secure password hashes with scrypt bcrypt pbkdf2 md5 sha1 sha256 sha512
+/*passhash is a command line utility to generate secure password hashes with scrypt bcrypt pbkdf3 md5 sha1 sha256 sha512
 
 I/O format is base64 conforming to RFC 4648 (also known as url safe base64 encoding).
 If no salt is provided a cryptographically strong pseudo-random generator is used to generate
@@ -85,16 +85,16 @@ func main() {
 	if opts.Kdname == "scrypt" {
 		opts.Hashname = "sha256"
 	}
-	var hmacenc_bin []byte
+	var hmacencBin []byte
 	if opts.Hmacenc != "" {
-		hmacenc_bin, err = base64.URLEncoding.DecodeString(opts.Hmacenc)
+		hmacencBin, err = base64.URLEncoding.DecodeString(opts.Hmacenc)
 		if err != nil {
 			log.Fatal("Unable to decode hmac encryption password: ", err)
 		}
 	}
 	//println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
-	h, hash_available := str2hash[opts.Hashname]
-	if !hash_available {
+	h, hashAvailable := str2hash[opts.Hashname]
+	if !hashAvailable {
 		log.Fatal("Error: ", "Unknown hash given: ", opts.Hashname)
 	}
 	hashlength := h().Size()
@@ -136,9 +136,9 @@ func main() {
 			log.Fatal("Error: ", "in bcrypt: ", err)
 		}
 		// safeguard against bcrypt working with wrong cost value
-		if real_cost, err := bcrypt.Cost(dk); err != nil {
+		if realCost, err := bcrypt.Cost(dk); err != nil {
 			panic(err)
-		} else if opts.Cost != real_cost {
+		} else if opts.Cost != realCost {
 			log.Fatal("Error: ", "bcrypt did not generate hash with user provided cost value")
 		}
 	default:
@@ -146,16 +146,16 @@ func main() {
 	}
 
 	if opts.Hmacenc != "" {
-		hmac_enc := hmac.New(h, hmacenc_bin)
-		if _, err = hmac_enc.Write(dk); err != nil {
+		hmacEnc := hmac.New(h, hmacencBin)
+		if _, err = hmacEnc.Write(dk); err != nil {
 			log.Fatal("Error: error encrypting hash with hmac: ", err)
 		}
-		dk = hmac_enc.Sum(nil)
+		dk = hmacEnc.Sum(nil)
 	}
 
-	salt_b64 := base64.URLEncoding.EncodeToString(salt)
-	pwhash_b64 := base64.URLEncoding.EncodeToString(dk)
+	saltB64 := base64.URLEncoding.EncodeToString(salt)
+	pwhashB64 := base64.URLEncoding.EncodeToString(dk)
 
-	fmt.Printf("%s$%s\n", salt_b64, pwhash_b64)
+	fmt.Printf("%s$%s\n", saltB64, pwhashB64)
 	//fmt.Printf("%x\n", dk)
 }
