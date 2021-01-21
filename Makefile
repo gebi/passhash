@@ -8,7 +8,7 @@ cross:
 	GOARCH=amd64 GOOS=windows go build -o passhash_64.exe passhash.go
 
 passhash: passhash.go
-	go build passhash.go
+	go build
 
 format:
 	gofmt -s -tabs=false -tabwidth=4 -w=true passhash.go
