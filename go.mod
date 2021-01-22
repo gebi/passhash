@@ -1,4 +1,4 @@
-module passhash
+module github.com/gebi/passhash
 
 go 1.16
 
