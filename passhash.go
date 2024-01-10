@@ -10,10 +10,12 @@ Supported Key Derivation Functions with Default Parameters:
     *scrypt* default (CPU/memory cost parameter 1<<14))
     bcrypt           (cost value = 14)
     pbkdf2           (sha256 with 50000 rounds)
+    argon2           (FIXME)
 
 Supported Algorithms (pbkdf2):
 
     sha1, sha256, sha224, sha384, sha512
+    sha3-224, sha3-256, sha3-384, sha3-512
     md4, md5
 */
 package main
@@ -21,10 +23,11 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	flags "github.com/jessevdk/go-flags"
 	"hash"
 	"log"
 	"os"
+
+	flags "github.com/jessevdk/go-flags"
 
 	// hash
 	"crypto/hmac"
@@ -32,9 +35,12 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+
 	"golang.org/x/crypto/md4"
+	"golang.org/x/crypto/sha3"
 
 	// key derivation function
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
@@ -45,13 +51,17 @@ import (
 
 var (
 	str2hash = map[string](func() hash.Hash){
-		"md4":    md4.New,
-		"md5":    md5.New,
-		"sha1":   sha1.New,
-		"sha224": sha256.New224,
-		"sha256": sha256.New,
-		"sha384": sha512.New384,
-		"sha512": sha512.New,
+		"md4":      md4.New,
+		"md5":      md5.New,
+		"sha1":     sha1.New,
+		"sha224":   sha256.New224,
+		"sha256":   sha256.New,
+		"sha384":   sha512.New384,
+		"sha512":   sha512.New,
+		"sha3-224": sha3.New224,
+		"sha3-256": sha3.New256,
+		"sha3-384": sha3.New384,
+		"sha3-512": sha3.New512,
 	}
 )
 
@@ -62,6 +72,7 @@ func main() {
 		Kdname   string `long:"kd" description:"Key derivation function"`
 		Cost     int    `short:"c" long:"cost" default:"14" description:"Cost parameter to key derivation functions"`
 		Hmacenc  string `long:"hmacenc" default:"" description:"Base64 encoded password for final hmac encryption step"`
+		Sha3enc  string `long:"sha3enc" default:"" description:"Base64 encoded password for final sha3 encryption step"`
 	}
 	opts.Rounds = 50000
 	opts.Hashname = "sha256"
@@ -70,7 +81,11 @@ func main() {
 	parser := flags.NewParser(&opts, flags.Default)
 	parser.Usage = "[OPTIONS] <password> [salt]"
 	parser.Usage += "\n\nSupported:\n"
-	parser.Usage += "\tscrpyt bcrypt pbkdf2\n"
+	parser.Usage += "   KDF:\tscrpyt bcrypt pbkdf2 argon2\n"
+	parser.Usage += "  HASH:\t"
+	for i := range str2hash {
+		parser.Usage += i + " "
+	}
 	args, err := parser.Parse()
 	if err != nil {
 		os.Exit(1)
@@ -85,11 +100,21 @@ func main() {
 	if opts.Kdname == "scrypt" {
 		opts.Hashname = "sha256"
 	}
+	if opts.Hmacenc != "" && opts.Sha3enc != "" {
+		log.Fatal("Error: you can not encrypt in the last step with both hmac and sha3, choose one")
+	}
 	var hmacencBin []byte
 	if opts.Hmacenc != "" {
 		hmacencBin, err = base64.URLEncoding.DecodeString(opts.Hmacenc)
 		if err != nil {
 			log.Fatal("Unable to decode hmac encryption password: ", err)
+		}
+	}
+	var sha3encBin []byte
+	if opts.Sha3enc != "" {
+		sha3encBin, err = base64.URLEncoding.DecodeString(opts.Sha3enc)
+		if err != nil {
+			log.Fatal("Unable to decode sha3 encryption password: ", err)
 		}
 	}
 	//println(opts.Rounds); println(opts.Hashname); println(opts.Kdname); println(opts.Cost)
@@ -141,6 +166,9 @@ func main() {
 		} else if opts.Cost != realCost {
 			log.Fatal("Error: ", "bcrypt did not generate hash with user provided cost value")
 		}
+	case "argon2":
+		// FIXME - add support for arguments and different argon functions
+		dk = argon2.IDKey(pw, salt, 1, 64*1024, 4, 32)
 	default:
 		log.Fatal("Error: unknown key derivation")
 	}
@@ -151,6 +179,10 @@ func main() {
 			log.Fatal("Error: error encrypting hash with hmac: ", err)
 		}
 		dk = hmacEnc.Sum(nil)
+	}
+
+	if opts.Sha3enc != "" {
+		// FIXME encrypt with sha3
 	}
 
 	saltB64 := base64.URLEncoding.EncodeToString(salt)
